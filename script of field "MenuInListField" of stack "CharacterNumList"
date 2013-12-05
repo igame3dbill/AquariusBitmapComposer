@@ -1,0 +1,18 @@
+-- script of field "MenuInListField" of stack "CharacterNumList"
+-- 12 04 2013
+-- this script acts like menu selections from the field
+-- this setup is likely to be replaced with real menus
+-- already basic options are built in
+
+on mouseDown
+   if the controlKey is down then resetMenuListField
+   show stack (the mainStack of this stack)
+  put word 2 selectedLine of me into n
+  put line n of me into tText
+
+   if the clickedOnce of me is false then 
+      set the clickedOnce of me to true
+      set the defaultStack to (the mainStack of this stack)
+       send ClickFieldPick && tText  to stack (the mainStack of this stack)
+      end if
+end mouseDown
