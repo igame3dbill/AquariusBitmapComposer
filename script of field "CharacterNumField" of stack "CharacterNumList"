@@ -1,0 +1,35 @@
+-- script of field "CharacterNumField" of stack "CharacterNumList"
+--  12 04 2013
+-- this script handles mouse clicks and drags in the numbered list field
+-- it allows quick changes/previews of characters
+
+on mouseDown
+   put word 2 selectedLine of me into N
+    put the currentCharacter of stack (the mainStack of this stack)  into CC
+         applyChangesToCharacter CC
+       if N is empty then put CC into N
+
+   if mouse(1) is "down" then 
+      set the currentCharacter of stack (the mainstack of this stack) to N
+      send showChar && N to stack (the mainstack of this stack) 
+   end if 
+end mouseDown
+
+
+on mouseMove
+   if the mouse is down and the mouseloc is within the rect of me then
+         put word 2 selectedLine of me into N
+         send showChar && N to stack (the mainstack of this stack) 
+         end if
+end mouseMove
+
+
+on mouseUp
+   put word 2 selectedLine of me into N
+      set the currentCharacter of stack (the mainstack of this stack) to N
+      send showChar && N to stack (the mainstack of this stack) 
+end mouseUp
+
+
+
+
