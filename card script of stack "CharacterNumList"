@@ -1,0 +1,17 @@
+-- card script of stack "CharacterNumList", a substack of AquariusBitmapComposer_mainstack
+-- December 4 2013
+-- For use in Livecodecard script. http://livecode.com/
+-- 12 04 2013
+-- This script adjusts the fields of stack "CharacterNumList"  to fit the window if the user changes its size
+
+on resizeStack newWidth,newHeight
+   set the height of field "CharacterNumField" to newHeight-4
+   set the top of field "CharacterNumField" to 2
+   set the right of field "CharacterNumField" to the width of this stack-2
+     set the height of field "MenuInListField" to newHeight-4
+     set the topLeft of field "MenuInListField" to 2,2
+     
+     -- trying to keep this stack from capturing messages.
+     set the defaultStack to  (the mainstack of this stack)
+     focus nothing
+end resizeStack
