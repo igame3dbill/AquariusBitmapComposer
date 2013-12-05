@@ -1,0 +1,615 @@
+-- AquariusBitMapComposer_MainStack_Stackscript
+-- MODIFY AND EXPORT 8 BIT CHARACTER DATA
+-- December 4 2013
+-- For use in Livecode stack script. http://livecode.com/
+-- 12 02 2013
+-- This script references a substack "CharacterNumList" with two fields "CharacterNumField" and "MenuInListField"
+-- This script overuses stack (the mainStack of this stack) and the costum properties need cleaning up.
+-- createEightBitGrid generates the graphics the user will paint pixels with.
+-- mouseDown, mouseStillDown, and mouseDragCheck handle painting
+-- commandKeyDown handles the usual program shortcuts
+-- ClickFieldPick is a lazyman's menu system taking imput from "MenuInListField" of stack "CharacterNumList"
+-- ig3d_SaveBitmapwithAlpha does some kind of magic to export images with alpha channels
+
+getprop stackDirectory
+  set itemDel to "/"
+  get item 1 to -2 of (token -1 of the long name of this stack) & "/"
+  if offset(".app/Contents/MacOS/",it) <> 0 then get item 1 to -4 of it &"/"
+  return it
+end stackDirectory
+
+on openStack
+    put the AquariusAscii of stack (the mainstack of this stack) into AA
+   set the currentAsciiChart of stack (the mainStack of this stack) to AA
+   repeat with i = 0 to 255
+      put i & cr after tList
+   end repeat
+   if "CharacterNumList" is not among the lines of the windows then open stack "CharacterNumList"
+   put tList into field "CharacterNumField"
+   set the defaultStack to  (the mainstack of this stack)
+   focus nothing
+end openStack
+
+on clearTempImgs
+  repeat with x = the number of imgs down to 1
+    if the short name of img x is "temp"  or  the short name of  img x is "test.bmp" then delete img x
+  end repeat
+end clearTempImgs
+
+on ig3d_SaveBitmapwithAlpha
+   set the defaultStack to  (the mainStack of this stack)
+   clearTempImgs
+   set itemDel to comma
+   put item 1 the rect of graphic "1" & comma & item 2 the rect of graphic  "1" & comma & the item 3 the rect of graphic "64" & comma & item 4 the rect of graphic "64" into trect
+   add left of stack (the mainStack of this stack) to item 1 of tRect
+   add left of stack (the mainStack of this stack) to item 3 of tRect
+   add top of stack (the mainStack of this stack) to item 2 of tRect
+   add top of stack (the mainStack of this stack) to item 4 of tRect
+   put the visColor of stack (the mainStack of this stack) into tShowFace  -- "253,253,253"
+   put the maskColor of stack (the mainStack of this stack) into tBackColor
+   set the backgroundColor of  stack (the mainStack of this stack)  to tShowFace
+   put the stackDirectory of this stack & "Images/" & "test.bmp" into Testbmp
+   import snapshot from rect tRect  
+   set the name of the last image to "test.bmp"
+  
+   doTrans tShowFace
+   put  the folderToSaveTo of this stack into tFolder -- "BlackANDAlpha"
+   put the currentCharacter of stack (the mainStack of this stack)-1 into PNam
+   put the width of stack (the mainStack of this stack) into Siz
+   put Siz & "_" & tFolder into newPath
+   checkFolderExists newPath
+    put the stackDirectory of this stack & "Images/" & newPath into sPath
+  
+   repeat while the number of characters of Pnam < 3
+      put "0" before Pnam
+   end repeat
+   
+   put sPath  & "/" & Pnam &".png" into item -1 of tUrl
+   set itemDel to "/"
+   put pnam &".png" &cr after turls
+   
+   put turl into imurl
+   put "binfile:" & tUrl into tUrl
+   put img "temp" into url turl
+   set the backgroundColor of stack (the mainStack of this stack) to tBackColor   -- "0,0,0"
+   clearTempImgs
+end ig3d_SaveBitmapwithAlpha
+
+
+on doTrans tShowFace
+   --- tShowFace = "253,253,253"
+  put altMakeTransAlpha(tShowFace,the imageData of img "test.bmp",the alphadata of img "test.bmp") into tMaskData
+  create image "temp"
+  set the rect of img "temp" to the rect of img "test.bmp"
+  set the imageData of img "temp" to the imageData of img "test.bmp"
+  set the alphaData of img "temp" to tMaskData
+  set the loc of img "temp" to \
+      item 1 of the loc of img "temp", \
+      item 2 of the loc of img "temp" + the height of img "temp" + 20
+end doTrans
+
+function altMakeTransAlpha pTransColor,pImgData,pAlphaData
+  --> pTransColor IS THE COLOR TO MAKE TRANSPARENT
+  -->  EX. "255,255,255" IS WHITE
+  --> pImgData IS THE IMAGEDATA FROM WHICH THE MASK IS CREATED
+  --> pAlphaData IS THE ALPHADATA OF THE ORIGINAL IMAGE
+  put binaryEncode("C",0) into t0RGB
+  put t0RGB into tAlphaTrans
+  put binaryEncode("C",item 1 of pTransColor) after t0RGB
+  put binaryEncode("C",item 2 of pTransColor) after t0RGB
+  put binaryEncode("C",item 3 of pTransColor) after t0RGB
+  put 0 into tPos
+  repeat forever
+    put offset(t0RGB,pImgData,tPos) into t
+    if t=0 then
+      exit repeat
+    else
+      add t+3 to tPos
+      put tAlphaTrans into char tPos/4 of pAlphaData
+    end if
+  end repeat
+  return pAlphaData
+end altMakeTransAlpha
+
+
+
+------ NEW 11 02 2013 BIG PICTURE IMAGE EXPORT SCRIPTS
+-- run this on an empty stack to create the clickable 64 object grid.
+on createEightBitGrid
+   put trunc((width of this stack-4)/8)into tSize 
+   put 1 into I
+   repeat with y = 1 to 8
+   repeat with x = 1 to 8
+   create graphic
+   set the opaque of it to true
+   set the backgroundcolor of it to white
+set the style of it to rectangle
+set the lineSize of it to 0
+set the width of it to tSize
+set the height of it to tSize
+set the top of it to (y*tSize)-tSize
+set the left of it to (x*tSize)-tSize
+set the name of it to I
+add 1 to I
+put "0" after Mem
+end repeat
+end repeat
+set the emptyMEM of stack (the mainStack of this stack)  to Mem
+set the dirtyMEM of stack (the mainStack of this stack) to Mem
+set the currentMEM of stack (the mainStack of this stack) to Mem
+set the copyMEM of stack (the mainStack of this stack) to Mem
+set the undoMEM of stack (the mainStack of this stack) to Mem
+set the lastClickMEM of stack (the mainStack of this stack) to Mem
+end createEightBitGrid
+
+
+on showChar N
+   if N is empty then put the currentCharacter of stack (the mainstack of this stack) into N
+   if N is "dirty" then
+      put the dirtyMEM of stack (the mainstack of this stack) into CHR
+   else
+      put line N  of the currentAsciiChart  of stack (the mainstack of this stack) into CHR
+      set the currentMEM of stack (the mainStack of this stack) to CHR
+      set the dirtyMEM of stack (the mainStack of this stack) to CHR
+   end if
+   put 1 into x
+   put 0 into i
+   repeat with c = 1 to 64
+      set the visible of graphic c of stack (the mainStack of this stack) to true
+      if char c of CHR is  "1" then 
+         set the backgroundColor of graphic c of stack (the mainstack of this stack) to black
+         set the Touched of graphic c  stack (the mainstack of this stack)  to true
+      else
+         set the backgroundColor of graphic c stack (the mainstack of this stack) to white
+         set the Touched of graphic c stack (the mainstack of this stack)  to false
+      end if
+      
+   end repeat
+   
+end showChar
+
+on exportImageOf N
+   put line N  of the currentAsciiChart of  stack  (the mainStack of this stack) into CHR
+   put the folderToSaveTo of stack (the mainStack of this stack) into FS
+   put the visColor of stack  (the mainStack of this stack)  into Vic 
+   put the maskColor of stack the (the mainStack of this stack)  into MC
+   put the visBool of stack (the mainStack of this stack) into B
+   
+   repeat with C = 1 to 64
+   if char C of CHR is  "1" then 
+      set the visible of graphic C of stack (the mainStack of this stack) to B
+      set the backgroundColor of graphic C of stack (the mainStack of this stack) to Vic
+      set the Touched of graphic C of stack (the mainStack of this stack) to B
+   else
+      set the visible of graphic C of stack (the mainStack of this stack) to  not B
+      set the backgroundColor of graphic C of stack (the mainStack of this stack) to MC
+       set the Touched of graphic C of stack (the mainStack of this stack) to not B
+    end if
+    end repeat
+   send ig3d_SaveBitmapwithAlpha to stack(the mainStack of this stack) 
+end exportImageOf 
+
+
+
+
+on checkFolderExists whatFolder
+   put the stackDirectory of this stack  into sPath
+   set the defaultFolder to sPath
+   put the folders into tList
+   if "Images" is not among the lines of tList then create folder sPath & "Images"
+   if whatFolder is not empty  then
+   put sPath & "Images/"  into newPath 
+   set the defaultFolder to newPath
+   put the folders into newList
+   if whatFolder is not among the lines of newList then create folder newPath & whatFolder
+end if
+end checkFolderExists
+
+on applyChangesToCharacter N
+   if N is empty then put the currentCharacter of stack (the mainStack of this stack) into N
+   put the dirtyMEM of stack (the mainStack of this stack) into newData
+   put the currentAsciiChart of stack (the mainStack of this stack) into CAC
+   if N > 1 then 
+   put line 1 to  N-1 of CAC into prfx
+   put line N+1 to -1 of CAC into sfx
+   put prfx & cr &  newData & cr & sfx  into appliedData
+else
+   put newData & cr & line 2 to -1 of CAC into appliedData
+   end if
+
+   set the currentAsciiChart of stack (the mainStack of this stack) to appliedData
+end applyChangesToCharacter
+
+on ExportWithAlpha what
+   
+   switch what
+      case "White with alpha"
+         set the folderToSaveTo of stack (the mainStack of this stack) to "WhiteWithAlpha"
+         set the visColor of stack  (the mainStack of this stack) to "253,253,253" 
+         set the maskColor of stack the (the mainStack of this stack) to "0,0,0"
+         set the visBool of stack (the mainStack of this stack) to true
+     break
+      case  "Black with alpha"
+         set the folderToSaveTo of stack (the mainStack of this stack) to "BlackWithAlpha"
+         set the visColor of stack  (the mainStack of this stack) to "0,0,0" 
+         set the maskColor of stack the (the mainStack of this stack) to "253,253,253" 
+         set the visBool of stack (the mainStack of this stack) to true
+      break
+      case "Inverse white with alpha"
+         set the folderToSaveTo of stack (the mainStack of this stack) to "WhiteInvertWithAlpha"
+         set the visColor of stack  (the mainStack of this stack) to "0,0,0" 
+         set the maskColor of stack the (the mainStack of this stack) to "253,253,253" 
+         set the visBool of stack (the mainStack of this stack) to false
+         break
+   end switch
+   
+   repeat with  N=1 to 256
+      set the currentCharacter of stack (the mainStack of this stack) to N
+      send exportImageOf && N  to stack(the mainStack of this stack) 
+       wait for 15 ticks with messages
+    end repeat
+end ExportWithAlpha
+
+on openFile tFile
+   open file tFile for read
+   read from file tFile until EOF
+   put it into tRaw
+
+   if tRaw is not empty then 
+         if char 1 of tRaw is "-" then put line 2 to  -1 of tRaw into tFileInputData
+         else 
+            put tRaw into tFileInputData
+         end if
+         
+            if tFileInputData is not empty then
+            
+            set the OpenedTextFile of stack (the mainStack of this stack) to tFile
+            set the OpenedTextFileData of stack (the mainStack of this stack) to tFileInputData
+            set the currentAsciiChart of stack (the mainStack of this stack) to tFileInputData
+            put  the currentCharacter of  stack (the mainStack of this stack)  into n
+            send showChar && n+1 to stack (the mainStack of this stack)
+            
+         end if
+         end if
+end openFile
+
+-- This is super rough options menu in a field of stack "CharacterNumList"
+on ClickFieldPick tText
+   set the defaultStack to (mainstack of this stack)
+   if tText is a number then 
+      set the width of stack (the mainStack of this stack) to tText+7
+      set the height of stack (the mainStack of this stack) to tText+7
+      set the clickedOnce of field "MenuInListField" of stack "CharacterNumList" to false
+   end if
+   switch tText
+      case "Apply Changes"
+         applyChangesToCharacter
+         break
+      case "Open"
+         openAsciiChart
+         break 
+      case "Save"
+         saveAsciiChart
+         break
+      case "White with alpha"
+      case  "Black with alpha"
+      case "Inverse white with alpha"
+         answer "Really Export 256 images?" with   "No" or "Yes"
+         if it is "Yes" then   
+            send ExportWithAlpha && tText  to stack (the mainStack of this stack)
+         end if
+         break
+      case ""
+      case "FILES"
+      case "EDITING"
+      case "EXPORT"
+      case "WINDOW SIZE"
+         break 
+   end switch
+   send    resetMenuListField to stack (the mainStack of this stack) in 130 milliseconds
+end ClickFieldPick
+
+on openAsciiChart
+   answer file "Open text file a binary description of  images"
+   resetMenuListField
+   if it is not empty then 
+      put it  into tFile
+      openFile tFile
+   end if
+end openAsciiChart
+
+on saveAsciiChart
+    put the currentAsciiChart of stack (the mainStack of this stack) into CAC
+         ask file "Save text file out"
+         if it is not empty then 
+            put "file:" & it into tURL
+            if char -4 to -1 of tURL <>".txt" then put ".txt" after tURL
+            put CAC into URL tURL
+         end if
+end saveAsciiChart
+on resetMenuListField
+   set the clickedOnce of field "MenuInListField" of stack "CharacterNumList" to false
+    put the customMenuText of stack the mainStack of this stack into field  "MenuInListField" of stack "CharacterNumList"
+end resetMenuListField
+
+-- snap grid graphics to size of stack minus the border for export / number of squares across
+on resizeStack newWidth,newHeight
+  
+   put the topLeft of this stack into TL
+   put trunc((newWidth-7)/8) into S
+   put 1 into i
+   repeat with y= 1 to 8
+      repeat with x = 1 to 8
+         set the width of graphic i to S
+         set the height of graphic i to S
+         set the topLeft of graphic i to (x*S)-S,(y*S)-S
+         add 1 to i
+         end repeat
+      end repeat
+      if newWidth  <800 then
+         set the top of me to the top of stack "CharacterNumList"+20
+         else
+            set the top of stack (the mainStack of this stack) to 40
+            end if
+       
+      set the left of stack (the mainStack of this stack) to the right of stack "CharacterNumList"+20
+      set the defaultStack to (the mainStack of this stack)
+      set the title of stack (the mainStack of this stack) to "Aquarius Bit Composer" && newWidth
+      --put the width of graphic 1 of this stack
+end resizeStack
+
+--- DRAWING FUNCTIONS
+
+function mouseOverGraphic
+   put empty into Na
+   put empty into N
+     repeat with G=1 to the number of graphics of this stack
+         if the mouseloc is within the rect of graphic G of this stack then
+            put the name of graphic G of this stack  into Na
+            put G into N
+            exit repeat
+         end if
+      end repeat
+      --put N,Na
+         return N,Na
+end mouseOverGraphic
+
+on mouseDown
+      put the visColor of stack (the mainStack of this stack) into PColor
+      put the maskColor of stack (the mainStack of this stack) into EColor
+  
+      put item 1 of mouseOverGraphic() into N
+      put item 2 of mouseOverGraphic() into Na
+      if N is not empty then 
+         set the Touched of  Na to not the Touched of  Na
+         put the dirtyMEM of this stack into DM
+         put char 1 to N-1  of DM into Prf
+         put char N+1 to -1 of DM into Sfx
+         put char N of DM into TBit
+         if the Touched of   Na is true then
+            set the backgroundColor  of  Na to PColor
+            set the PenWill of stack (the mainStack of this stack) to "paint"
+            put 1 into  TBit 
+         else 
+            set the backgroundColor of  Na to EColor 
+            set the PenWill of stack (the mainStack of this stack) to "erase"
+            put 0 into TBit 
+         end if
+         
+         put Prf & TBit & Sfx into UpdateM
+         set the undoChar of stack (the mainStack of this stack)  to N
+         set the undoMEM of stack (the mainStack of this stack)  to DM
+         set the dirtyMEM of stack (the mainStack of this stack)  to UpdateM
+      end if
+      if mouse(1) is "down" or mouse (3) is "down" then  send mouseDragChek  
+end mouseDown
+
+on mouseStillDown
+   mouseDragChek -- to this stack in 10 milliseconds
+end mouseStillDown
+
+on mouseDragChek
+   if the mouseControl is empty then exit mouseDragChek 
+   if mouse(1) is "down" or mouse(3) is "down" then 
+      
+      put item 1 of mouseOverGraphic() into N
+      put item 2 of mouseOverGraphic() into Na
+      if N is empty then exit mouseDragChek
+      
+      put the dirtyMEM of this stack into DM
+      put char 1 to N-1  of DM into Prf
+      put char N+1 to -1 of DM into Sfx
+      put char N of DM into TBit
+      
+      if the PenWill of this stack is "paint" then
+         set the Touched of  Na to true
+         set the backgroundColor  of  Na to black
+         put 1 into  TBit 
+      else 
+         set the backgroundColor of  Na  to white 
+         set the Touched of  Na to false
+         put 0 into  TBit 
+      end if
+      
+      put Prf & TBit & Sfx into UpdateM
+ 
+      set the undoChar of stack (the mainStack of this stack)  to N
+      set the undoMEM of stack (the mainStack of this stack) to DM
+      set the dirtyMEM of  stack (the mainStack of this stack)  to UpdateM
+      applyChangesToCharacter
+   end if
+   if mouse(1) is "down" or mouse (3) is "down" then  send mouseDragChek to this stack in 10 milliseconds
+end mouseDragChek
+
+
+on pasteChar N
+   if N is empty then put the currentCharacter of stack (the mainstack of this stack) into N
+   put line N  of the currentAsciiChart  of stack (the mainstack of this stack) into oCHR
+   put the copyMEM of stack (the mainStack of this stack)  into tLine
+   put tLine
+   put empty into PASTA
+   repeat with c = 1 to 64
+      if char c of TLine is 1 then 
+         put 1 after PASTA
+      else
+         put char c of oCHR after PASTA
+         end if
+   end repeat
+   set the undoChar of stack (the mainStack of this stack)  to N
+      set the undoMEM of stack (the mainStack of this stack) to oCHR
+      set the dirtyMEM of  stack (the mainStack of this stack)  to PASTA
+      applyChangesToCharacter
+       showChar "dirty"
+end pasteChar
+
+
+on commandKeyDown cKey
+   --put cKey
+   if the tool is  "browse tool" then 
+   switch cKey
+      case "s"
+         saveAsciiChart
+         break
+      case "o"
+         openAsciiChart
+         break
+      case "c"
+         set the copyMEM of stack (the mainStack of this stack) to the dirtyMEM of stack (the mainStack of this stack)
+         break
+      case "v" 
+         pasteChar
+         set the undoMEM of stack (the mainStack of this stack) to the dirtyMem of stack (the mainStack of this stack)
+         --set the dirtyMEM of stack (the mainStack of this stack) to the copyMEM of stack (the mainStack of this stack)
+         --applyChangesToCharacter
+         
+         break
+      case "z"
+         put the currentCharacter of stack (the mainStack of this stack) into N
+         put the undoChar of stack (the mainStack of this stack) into UC
+         if N = UC then 
+            --put  the undoMEM of stack (the mainStack of this stack) into U
+            put  the currentMEM of stack (the mainStack of this stack) into CM
+         put the  dirtyMem of stack (the mainStack of this stack)  into D
+         set the dirtyMem of stack (the mainStack of this stack) to CM
+         set the undoMEM of stack (the mainStack of this stack) to D
+         
+          showChar "dirty"
+       else
+          showChar N
+          end if
+         break
+      case "q"
+         -- don't know this doesn't work
+       checkQuit
+         break
+   end switch
+else
+   pass commandKeyDown
+   end if
+end commandKeyDown
+
+on closeStack
+   checkQuit
+end closeStack
+on checkQuit
+     answer "Do you really want to quit" with "No" and "Yes"
+         if it is "Yes" then 
+            quit
+         else
+            pass checkQuit
+            end if
+end checkQuit
+
+on stepThroughChars V
+    put the currentCharacter of stack (the mainstack of this stack) into N 
+      applyChangesToCharacter N
+      set the currentCharacter of stack (the mainStack of this stack) to N+V 
+      showChar N+V
+      set the hilitedLine of field "CharacterNumField" of stack "CharacterNumList" to N
+      focus nothing
+end stepThroughChars
+
+--Keyboard 
+on rawKeyDown tKey
+   --put tkey
+   focus nothing
+   -- tab
+   if tKey = 65289 then stepThroughChars 1
+  
+   if tKey = 96 then stepThroughChars -1
+      
+   -- capture space,enter and return for applying changes
+   if tKey is among the items of "32,65421.65293" then applyChangesToCharacter
+   if tkey >= 65361 and tkey < 65464 then    pass rawkeydown
+   pass rawkeydown
+end rawkeyDown
+
+on arrowKey tkey
+   focus nothing
+ put the dirtyMEM of stack (the mainStack of this stack) into DM
+   switch tKey
+      case "left" -- left
+         put -1 into xmod
+         break
+      case "up" -- up
+         put -1 into ymod
+            break
+         case "right"-- right
+            put 1 into xmod
+               break
+            case "down" -- down
+               put 1 into ymod
+         break
+   end switch
+ 
+   if ymod is not 0 then
+      switch ymod
+            case -1
+          put char 9 to -1 of DM & char 1 to 8 of DM into Modline
+            break
+         case 1
+              put char -8 to -1 of DM &  char 1 to -9 of DM into Modline
+            break
+      end switch
+      set the dirtyMem of stack (the mainStack of this stack) to Modline
+      end if
+   if    xmod is not 0 then
+   put 1 into d
+   put empty into newByte
+   repeat with c = 1 to 8
+      put char d to d+7 of DM  into tempLine
+      switch xmod
+         case -1
+            put char 2 to -1 of tempLine &  char 1 of tempLine into Modline
+            break
+         case 1
+            put char -1 of tempLine & char 1 to -2 of tempLine into Modline
+            break
+      end switch
+       put ModLine & cr after newByte
+       add 8 to d
+   end repeat
+   replace cr with empty in newByte
+   set the dirtyMem of stack (the mainStack of this stack) to newByte
+  
+end if
+   showChar "dirty"
+end arrowKey
+--UTILITIES
+
+on exportStackScript
+  put the script of stack (the mainStack of this stack)  into tScript
+  put "file:" & the stackDirectory of this stack & char 2 to -2 of word 2 the name of this stack  & ".StackScript.txt" into turl
+  put tScript into url turl 
+end exportStackScript
+
+on outputHTML Turls
+     replace space with empty in TURLS
+   put the htmlheader1 of stack (the mainStack of this stack) & pnam & the htmlBody1 of stack (The mainStack of this stack) into w1
+  put "<img id=" & quote & "1" & quote && "img src=" & quote & line 1 of turls & quote && the htmlBody2 of stack (the mainStack of this stack) into w3
+    put "<img id=" & quote & "2" & quote && "img src=" & quote & line 2 of turls & quote && the htmlBody2 of stack (the mainStack of this stack) into w4
+put cr & the htmlFoot1 of stack (the mainStack of this stack) after w4
+replace "Font_name" with pnam in w4
+put w1 & cr & w2 & cr & w3 & cr & w4 & cr into WebOutput
+ put webOutput into URL ("file:" & the stackDirectory of this stack & Pnam &"_asciiout.html")
+end outputHTML
