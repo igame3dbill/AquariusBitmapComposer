@@ -24,3 +24,4 @@ put "FILES,Open,Save,WINDOW SIZE,1024,768,512,256,128,96,64,EXPORT,White with al
 set the customMenuText of stack (the mainStack of this stack) to quickMenu
 
  
+set CurrentAsciiChart of stack (the mainStack of this stack) to the AquariusAscii  of stack (the mainStack of this stack)
